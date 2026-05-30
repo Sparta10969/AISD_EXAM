@@ -17,7 +17,6 @@ typedef struct Node{
     InfoType info;
     struct Node *left;
     struct Node *right;
-    struct Node *par;
 }Node;
 
 typedef struct Tree{
@@ -47,7 +46,7 @@ int compare(KeyType key1, KeyType key2){
 int insert(Tree *tree, KeyType key, InfoType info){
     if (tree==NULL || key==NULL) return -1;
     Node *node=(Node*)malloc(sizeof(Node));
-    node->left=node->right=node->par=NULL;
+    node->left=node->right=NULL;
     node->key=strdup(key);
     if (node->key==NULL) return -1;
     node->info=info;
@@ -65,7 +64,7 @@ int insert(Tree *tree, KeyType key, InfoType info){
             cur=cur->right;
         }
     }
-    node->par=par;
+
     if (compare(key, par->key)<0){
         par->left=node;
     }else{
@@ -97,41 +96,52 @@ int search(Tree *tree, KeyType key, Node **output){
     return -1;
 }
 
-int delete(Tree* tree, KeyType key){
-    if (tree=NULL || key==NULL || tree->root==NULL) return -1;
-    Node *rem;
-    Node *node;
-    int i=search(tree, key, &node);
-    if (i==-1) return -1;
-    if (node==NULL) return -1;
-    Node *real_del;
-    if (node->left==NULL || node->right==NULL){
-        real_del=node;
-    }else{
-        int i=successor(tree, node, &real_del);
-        if (i==-1) return -1;
-    }
-    Node *child;
-    if (real_del!=NULL) child=real_del->left;
-    else child=real_del->right;
-    if (child!=NULL) child->par=real_del->par;
-    if (real_del->par==NULL) {
-        tree->root=child; 
-    } else {
-        if (real_del==real_del->par->left) {
-            real_del->par->left=child;
+int delete(Tree* tree, KeyType key){ //хуйня ебаная- пиздос - deepseek в помощь
+    if (tree == NULL || key == NULL || tree->root == NULL) return -1;
+    
+    Node** p_cur = &tree->root;  // Двойной указатель для изменения ссылок
+    
+    // Поиск узла
+    while (*p_cur != NULL) {
+        int cmp = compare(key, (*p_cur)->key);
+        if (cmp == 0) break;  // Нашли
+        if (cmp < 0) {
+            p_cur = &(*p_cur)->left;
         } else {
-            real_del->par->right=child;
+            p_cur = &(*p_cur)->right;
         }
     }
     
-    if (real_del!=node) {
-        free(node->key);
-        node->key=strdup(real_del->key);
-        node->info=real_del->info;
+    if (*p_cur == NULL) return -1;  // Не найден
+    Node* to_del = *p_cur;
+    
+    // Случай: 0 или 1 ребёнок
+    if (to_del->left == NULL || to_del->right == NULL) {
+        Node* child = (to_del->left != NULL) ? to_del->left : to_del->right;
+        *p_cur = child;  // Переподключаем родителя к ребёнку
+        free(to_del->key);
+        free(to_del);
+    } 
+    // Случай: 2 ребёнка
+    else {
+        // Находим преемника (минимум правого поддерева)
+        Node** p_succ = &to_del->right;
+        while ((*p_succ)->left != NULL) {
+            p_succ = &(*p_succ)->left;
+        }
+        Node* succ = *p_succ;
+        
+        // Копируем данные преемника в удаляемый узел
+        free(to_del->key);
+        to_del->key = strdup(succ->key);
+        to_del->info = succ->info;
+        
+        // Удаляем преемника (у него точно ≤1 ребёнок)
+        *p_succ = succ->right;
+        free(succ->key);
+        free(succ);
     }
-    free(real_del->key);
-    free(real_del);
+    
     return 0;
 }
 
@@ -166,10 +176,17 @@ int successor(Tree *tree, Node *node, Node **output){ //следующий
         return 0;
     }
     Node* cur=node;
-    Node* par=cur->par;
-    while (par!=NULL && cur==par->right){
-        cur=par;
-        par=cur->par;
+    Node* par=NULL;
+    while (cur!=NULL){
+        int cmp=compare(node->key, cur->key);
+        if (cmp<0){
+            par=cur;
+            cur=cur->left;
+        }else if(cmp>0){
+            cur=cur->right;
+        }else{
+            break; 
+        }
     }
     if (par==NULL) return -1;
     *output=par;
@@ -187,10 +204,17 @@ int predecessor(Tree *tree, Node *node, Node **output){ //предшествую
         return 0;
     }
     Node *cur=node;
-    Node *par=cur->par;
-    while (par!=NULL && cur==par->left){
-        cur=par;
-        par=cur->par;
+    Node* par=NULL;
+    while (cur!=NULL){
+        int cmp=compare(node->key, cur->key);
+        if (cmp>0){
+            par=cur;
+            cur=cur->right;
+        }else if(cmp<0){
+            cur=cur->left;
+        }else{
+            break; 
+        }
     }
     if (par==NULL) return -1;
     *output=par;
