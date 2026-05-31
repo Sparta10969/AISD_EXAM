@@ -9,7 +9,7 @@ typedef unsigned long VerType;
 typedef struct Stack{
     int size; 
     int top;
-    KeyType *data;
+    Node **data;
 }Stack;
 
 typedef struct Node{
@@ -30,8 +30,6 @@ Stack* create_stack(void){
     stack->top=0;
     return stack;
 }
-
-
 
 Tree* create(void){
     Tree* tree=(Tree*)malloc(sizeof(Tree));
