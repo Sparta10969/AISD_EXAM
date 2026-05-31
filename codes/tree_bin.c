@@ -96,8 +96,7 @@ int search(Tree *tree, KeyType key, Node **output){
 }
 
 int delete(Tree* tree, KeyType key){
-    if (tree=NULL || key==NULL || tree->root==NULL) return -1;
-    Node *rem;
+    if (tree==NULL || key==NULL || tree->root==NULL) return -1;
     Node *node;
     int i=search(tree, key, &node);
     if (i==-1) return -1;
@@ -110,7 +109,7 @@ int delete(Tree* tree, KeyType key){
         if (i==-1) return -1;
     }
     Node *child;
-    if (real_del!=NULL) child=real_del->left;
+    if (real_del->left!=NULL) child=real_del->left;
     else child=real_del->right;
     if (child!=NULL) child->par=real_del->par;
     if (real_del->par==NULL) {

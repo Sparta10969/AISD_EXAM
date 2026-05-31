@@ -19,6 +19,8 @@ typedef struct Tree{
     struct Node* root;
 }Tree;
 
+Node EList={NULL,0,NULL,NULL,NULL,0};
+
 Tree* create(void){
     Tree* tree=(Tree*)malloc(sizeof(Tree));
     if (tree==NULL) return -1;
@@ -28,6 +30,165 @@ Tree* create(void){
 
 int compare(KeyType key1, KeyType key2){
     return strcmp(key1, key2);
+}
+
+int left_rotate(Tree *tree, Node* node){
+    if (tree==NULL || node==NULL) return -1;
+    Node *little_tree=node->right;
+    if (little_tree==&EList) return -1;
+    Node *parent=node->par;
+    if (little_tree->left!=&EList){
+        node->right=little_tree->left;
+        little_tree->left->par=node;
+    }
+    little_tree->par=parent;
+    if (parent==&EList){
+        tree->root=little_tree;
+    }else{
+        if(parent->right==node){
+            parent->right=little_tree;
+        }else{
+            parent->left=little_tree;
+        }
+    }
+    little_tree->left=node;
+    node->par=little_tree;
+    return 0;
+}
+
+int right_rotate(Tree *tree, Node* node){
+    if (tree==NULL || node==NULL) return -1;
+    Node *little_tree=node->left;
+    if (little_tree==&EList) return -1;
+    Node *parent=node->par;
+    if (little_tree->right!=&EList){
+        node->left=little_tree->right;
+        little_tree->right->par=node;
+    }
+    little_tree->par=parent;
+    if (parent==&EList){
+        tree->root=little_tree;
+    }else{
+        if(parent->right==node){
+            parent->right=little_tree;
+        }else{
+            parent->left=little_tree;
+        }
+    }
+    little_tree->right=node;
+    node->par=little_tree;
+    return 0;
+}
+int correct_insert(Tree *tree, Node *node){
+    if (tree==NULL || node==NULL) return -1;
+    /* Новый узел: баланс=0 */
+    node->balance=0;
+    Node *new=node;
+    Node *parent=new->par;
+
+    /* Поднимаемся вверх, пока баланс родителя==0 */
+    while (parent!=NULL && parent!=&EList && parent->balance==0){
+        if (new==parent->left){
+            parent->balance=-1;
+        } else {
+            parent->balance=+1;
+        }
+        new=parent;
+        parent=new->par;
+    }
+    /* Достигли корня — успех */
+    if (parent==NULL || parent==&EList){
+        return 0;
+    }
+    /* Вставка компенсировала наклон — баланс стал 0 */
+    if (new==parent->left && parent->balance==+1){
+        parent->balance=0;
+        return 0;
+    }
+    if (new==parent->right && parent->balance==-1){
+        parent->balance=0;
+        return 0;
+    }
+    /* === Коррекция дерева (баланс стал ±2) === */
+    /* Случай: вставка в левое поддерево */
+    if (new==parent->left){
+        Node *B=parent->right;
+        /* Случай 1: одинарный поворот (LL) */
+        if (B!=&EList && B->balance <= 0){
+            left_rotate(tree, parent);
+            if (B->balance==0){
+                parent->balance=+1;
+                B->balance=-1;
+            } else {
+                parent->balance=0;
+                B->balance=0;
+            }
+        }
+        /* Случай 2: двойной поворот (LR) */
+        else if (B!=&EList){
+            Node *C=B->left;
+            int c_bal=0;
+            if (C!=&EList){
+                c_bal=C->balance;
+            }
+            right_rotate(tree, B);
+            left_rotate(tree, parent);
+            if (c_bal==-1){
+                parent->balance=+1;
+                B->balance=0;
+            } else if (c_bal==+1){
+                parent->balance=0;
+                B->balance=-1;
+            } else {
+                parent->balance=0;
+                B->balance=0;
+            }
+            if (C!=&EList){
+                C->balance=0;
+            }
+        }
+    }
+    /* Случай: вставка в правое поддерево (симметрично) */
+    else {
+        Node *B=parent->left;
+        
+        if (B!=&EList && B->balance >= 0){
+            right_rotate(tree, parent);
+            if (B->balance==0){
+                parent->balance=-1;
+                B->balance=+1;
+            } else {
+                parent->balance=0;
+                B->balance=0;
+            }
+        }
+        else if (B!=&EList){
+            Node *C=B->right;
+            int c_bal=0;
+            if (C!=&EList){
+                c_bal=C->balance;
+            }
+            
+            left_rotate(tree, B);
+            right_rotate(tree, parent);
+            
+            if (c_bal==+1){
+                parent->balance=-1;
+                B->balance=0;
+            } else if (c_bal==-1){
+                parent->balance=0;
+                B->balance=+1;
+            } else {
+                parent->balance=0;
+                B->balance=0;
+            }
+            if (C!=&EList){
+                C->balance=0;
+            }
+        }
+    }
+    
+    return 0;
 }
 
 int insert(Tree *tree, KeyType key, InfoType info){
@@ -57,6 +218,7 @@ int insert(Tree *tree, KeyType key, InfoType info){
     }else{
        par->right=node;
     }
+    correct_insert(tree,node);
     return 0;
 }
 
@@ -83,9 +245,130 @@ int search(Tree *tree, KeyType key, Node **output){
     return -1;
 }
 
+/* === Фиксация после удаления === */
+int correct_delete(Tree *tree, Node *new){
+    if (tree==NULL || new==NULL) return -1;
+    Node *parent=new->par;
+    /* Поднимаемся вверх от удалённого узла */
+    while (parent!=NULL && parent!=&EList){
+        /* Обновляем баланс родителя */
+        if (new==parent->left){
+            parent->balance++;
+        } else {
+            parent->balance--;
+        }
+        int dh=parent->balance;
+        if (dh < 0){
+            dh=-dh;
+        }
+        /* Баланс восстановлен, но высота изменилась — продолжаем вверх */
+        if (dh==1){
+            new=parent;
+            parent=new->par;
+            continue;
+        }
+        /* Баланс стал 0 — высота не изменилась, коррекция завершена */
+        if (dh==0){
+            new=parent;
+            parent=new->par;
+            continue;
+        }
+        /* === Нарушение баланса (dh==2) — коррекция дерева === */
+        /* Случай: левое поддерево тяжелее */
+        if (parent->balance < 0){
+            Node *B=parent->right;
+            /* Случай 1: брат сбалансирован или внешнее поддерево выше */
+            if (B!=&EList && B->balance >= 0){
+                left_rotate(tree, parent);
+                if (B->balance==0){
+                    parent->balance=-1;
+                    B->balance=+1;
+                    new=parent;
+                    parent=new->par;
+                    continue;
+                } else {
+                    parent->balance=0;
+                    B->balance=0;
+                    break;
+                }
+            }
+            /* Случай 2: брат наклонён внутрь */
+            else if (B!=&EList){
+                Node *C=B->left;
+                int c_bal=0;
+                if (C!=&EList){
+                    c_bal=C->balance;
+                }
+                right_rotate(tree, B);
+                left_rotate(tree, parent);
+                if (c_bal==+1){
+                    parent->balance=0;
+                    B->balance=-1;
+                } else if (c_bal==-1){
+                    parent->balance=+1;
+                    B->balance=0;
+                } else {
+                    parent->balance=0;
+                    B->balance=0;
+                }
+                if (C!=&EList){
+                    C->balance=0;
+                }
+                new=parent;
+                parent=new->par;
+                continue;
+            }
+        }
+        /* Случай: правое поддерево тяжелее (симметрично) */
+        else {
+            Node *B=parent->left;
+            if (B!=&EList && B->balance <= 0){
+                right_rotate(tree, parent);
+                if (B->balance==0){
+                    parent->balance=+1;
+                    B->balance=-1;
+                    new=parent;
+                    parent=new->par;
+                    continue;
+                } else {
+                    parent->balance=0;
+                    B->balance=0;
+                    break;
+                }
+            }
+            else if (B!=&EList){
+                Node *C=B->right;
+                int c_bal=0;
+                if (C!=&EList){
+                    c_bal=C->balance;
+                }
+                left_rotate(tree, B);
+                right_rotate(tree, parent);
+                if (c_bal==-1){
+                    parent->balance=0;
+                    B->balance=+1;
+                } else if (c_bal==+1){
+                    parent->balance=-1;
+                    B->balance=0;
+                } else {
+                    parent->balance=0;
+                    B->balance=0;
+                }
+                if (C!=&EList){
+                    C->balance=0;
+                }
+                new=parent;
+                parent=new->par;
+                continue;
+            }
+        }
+    }
+    
+    return 0;
+}
+
 int delete(Tree* tree, KeyType key){
-    if (tree=NULL || key==NULL || tree->root==NULL) return -1;
-    Node *rem;
+    if (tree==NULL || key==NULL || tree->root==NULL) return -1;
     Node *node;
     int i=search(tree, key, &node);
     if (i==-1) return -1;
@@ -98,7 +381,7 @@ int delete(Tree* tree, KeyType key){
         if (i==-1) return -1;
     }
     Node *child;
-    if (real_del!=NULL) child=real_del->left;
+    if (real_del->left!=NULL) child=real_del->left;
     else child=real_del->right;
     if (child!=NULL) child->par=real_del->par;
     if (real_del->par==NULL) {
@@ -118,6 +401,9 @@ int delete(Tree* tree, KeyType key){
     }
     free(real_del->key);
     free(real_del);
+    if (real_del->balance!=0 || child!=&EList) {
+        correct_delete(tree, child);
+    }
     return 0;
 }
 
@@ -219,10 +505,11 @@ int post_order(Node *node){ //концевой - лево - право - кор�
     post_order(node->left);
     post_order(node->right);
     printf("%s", node->key);
+    return 0;
 }
 
 void post_order_free(Node* node) {
-    if (node == NULL) return;
+    if (node==NULL) return;
     post_order_free(node->left);
     post_order_free(node->right);
     free(node->key);
@@ -230,7 +517,7 @@ void post_order_free(Node* node) {
 }
 
 void kill_tree(Tree* tree) {
-    if (tree == NULL) return;
+    if (tree==NULL) return;
     post_order_free(tree->root);
     free(tree);
 }
