@@ -1198,7 +1198,59 @@ Min-heap (неубывающая)
 
 ## Билет 36. Пирамидальная сортировка.
 
-Только код 
+Только код (специально для Санечки 🦅🦅🦅🛸👽🏈🌎🌹🌹🌹🌹🌹)
+
+```
+typedef struct Heap{
+    int *data;
+    int size;
+    int capacity;
+}Heap;
+
+Heap* create(int capacity){
+    Heap *heap=(Heap*)malloc(sizeof(Heap));
+    heap->data=(int*)malloc(sizeof(int)*capacity);
+    heap->size=0;
+    heap->capacity=capacity;
+    return heap;
+}
+
+int max_heap(Heap* heap, int i){
+    int largest=i;
+    int left=2*i+1;
+    int right=2*i+2;
+    if (left<heap->size && heap->data[left]>heap->data[largest]) largest=left;
+    if (right<heap->size && heap->data[right]>heap->data[largest]) largest=right;
+    if (largest!=i){
+        int time=heap->data[i];
+        heap->data[i]=heap->data[largest];
+        heap->data[largest]=time;
+        max_heap(heap, largest);
+    }
+    return 0;
+}
+
+void build_max_heap(Heap* heap){
+    for (int i=heap->size/2-1; i>=0; i--){
+        max_heap(heap, i);
+    }
+}
+
+int heap_sort(Heap *heap){
+    build_smax_heap(heap);
+    int i=heap->size;
+    while (i>0){
+        int time=heap->data[0];
+        heap->data[0]=heap->data[i];
+        heap->data[i]=time;
+        heap->size--;
+        max_heapify(heap,0);
+    }
+    return 0;
+}
+
+```
+
 
 Время (лучший/средний/худший) -O(n log n)
 
@@ -1236,9 +1288,10 @@ Increase_Key(S, i, k)
 Skip List — вероятностная структура данных, альтернатива сбалансированным деревьям. Предложена William Pugh (1990)
 .
 ![alt text](image-40.png)
+![alt text](image-41.png)
+![alt text](image-42.png)
 
 Идея: упорядоченный связный список + дополнительные «экспресс-уровни» для ускорения поиска.
-
 
     Элемент уровня k — имеет k указателей forward[]
 
@@ -1253,7 +1306,22 @@ Skip List — вероятностная структура данных, аль
     12.5% — уровень 3
     ...
 
-Остальное код
+Остальное код, но так как мне лень его писать и даже лень дипсикать, то ловите слайды из презентации))
+
+![alt text](image-43.png)
+![alt text](image-44.png)
+![alt text](image-45.png)
+
+![alt text](image-46.png)
+![alt text](image-47.png)
+![alt text](image-48.png)
+![alt text](image-49.png)
+![alt text](image-50.png)
+![alt text](image-51.png)
+![alt text](image-52.png)
+![alt text](image-53.png)
+![alt text](image-54.png)
+![alt text](image-55.png)
 
 ## Билет 39. Графы: определение, ориентированный и неориентированный графы, взвешенные графы. Понятие пути в графе, длина пути. Представление графа.
 
