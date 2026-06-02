@@ -1,0 +1,124 @@
+
+// Структура для системы непересекающихся множеств (DSU)
+typedef struct {
+    int *parent;
+    int *rank;
+    int size;
+} DSU;
+
+// Создание множества
+DSU* create_dsu(int n) {
+    DSU *dsu = (DSU*)malloc(sizeof(DSU));
+    dsu->size = n;
+    dsu->parent = (int*)malloc(sizeof(int) * n);
+    dsu->rank = (int*)malloc(sizeof(int) * n);
+    
+    for (int i = 0; i < n; i++) {
+        dsu->parent[i] = i; // p[x] = x
+        dsu->rank[i] = 0;     // rank[x] = 0
+    }
+    return dsu;
+}
+
+// Поиск корня множества (Find_Set)
+int find_set(DSU *dsu, int x) {
+    if (dsu->parent[x] != x) {
+        dsu->parent[x] = find_set(dsu, dsu->parent[x]);  // сжатие пути
+    }
+    return dsu->parent[x];
+}
+
+// Объединение множеств (Union)
+void union_sets(DSU *dsu, int x, int y) {
+    int root_x = find_set(dsu, x);
+    int root_y = find_set(dsu, y);
+    
+    if (root_x != root_y) {
+        // Link - объединение по рангу
+        if (dsu->rank[root_x] > dsu->rank[root_y]) {
+            dsu->parent[root_y] = root_x;
+        } else {
+            dsu->parent[root_x] = root_y;
+            if (dsu->rank[root_x] == dsu->rank[root_y]) {
+                dsu->rank[root_y]++;
+            }
+        }
+    }
+}
+
+// Освобождение памяти DSU
+void free_dsu(DSU *dsu) {
+    if (dsu != NULL) {
+        free(dsu->parent);
+        free(dsu->rank);
+        free(dsu);
+    }
+}
+
+// Сравнение ребер для сортировки по весу
+int compare_edges(const void *a, const void *b) {
+    Edge *edge_a = (Edge *)a;
+    Edge *edge_b = (Edge *)b;
+    return edge_a->weight - edge_b->weight;
+}
+
+int Kruskala(Graph *graph) {
+    int V = graph->vertex_count;
+    
+    // Подсчет общего количества ребер
+    int E = 0;
+    for (int i = 0; i < V; i++) {
+        E += graph->vertexes[i]->edge_count;
+    }
+    
+    // Для неориентированного графа делим на 2
+    E = E / 2;
+    
+    // Создаем массив всех ребер
+    Edge *all_edges = (Edge *)malloc(sizeof(Edge) * E);
+    int idx = 0;
+    
+    // Заполняем массив ребер (только в одну сторону для неориентированного графа)
+    for (int i = 0; i < V; i++) {
+        for (int j = 0; j < graph->vertexes[i]->edge_count; j++) {
+            if (i < graph->vertexes[i]->edges[j].to) {  // чтобы не дублировать
+                all_edges[idx] = graph->vertexes[i]->edges[j];
+                idx++;
+            }
+        }
+    }
+    
+    // Сортируем ребра по возрастанию веса
+    qsort(all_edges, idx, sizeof(Edge), compare_edges);
+    
+    // Создаем систему непересекающихся множеств
+    DSU *dsu = create_dsu(V);
+    
+    // Минимальное остовное дерево (результат)
+    int mst_weight = 0;
+    int edges_used = 0;
+    
+    // Проходим по всем ребрам в порядке возрастания веса
+    for (int i = 0; i < idx && edges_used < V - 1; i++) {
+        int u = all_edges[i].from;
+        int v = all_edges[i].to;
+        int weight = all_edges[i].weight;
+        
+        // Проверяем, принадлежат ли вершины разным деревьям
+        if (find_set(dsu, u) != find_set(dsu, v)) {
+            // Добавляем ребро в MST
+            mst_weight += weight;
+            edges_used++;
+            
+            // Объединяем деревья
+            union_sets(dsu, u, v);
+        }
+    }
+    
+    // Освобождаем память
+    free(all_edges);
+    free_dsu(dsu);
+    
+    // Возвращаем вес минимального остовного дерева
+    return mst_weight;
+}
