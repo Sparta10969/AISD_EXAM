@@ -53,7 +53,7 @@ int max_up(Heap* heap, int cur){
 }
 
 int heap_sort(Heap *heap){
-    build_smax_heap(heap);
+    build_max_heap(heap);
     int i=heap->size;
     while (i>0){
         int time=heap->data[0];

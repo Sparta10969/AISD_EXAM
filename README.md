@@ -1404,6 +1404,34 @@ Skip List — вероятностная структура данных, аль
 
 Сложность: O(V + E) (каждая вершина и ребро обрабатываются один раз)
 
+```
+int Breadth_First_Search(Graph *graph, Vertex *val){ //поиск в ширину
+    int reset(graph);
+    Queue *queue=create(graph->vertex_count);
+    val->distance=0;
+    val->color=BLUE;
+    pull(queue, val);
+    while (queue->size!=0){
+        Vertex *v;
+        pop(queue, &v);
+        for (int i; i<v->edge_count; i++){
+            int idx=v->edges[i].to;
+            Vertex *u=graph->vertexes[idx];
+            if (u->color==WHITE){
+                u->color=BLUE;
+                u->distance=v->distance+1;
+                u->pred=v;
+                pull(queue, u);
+            }
+            v->color=RED;
+        }
+    }
+    free(queue->data);
+    free(queue);
+    return 0;
+}
+```
+
 2. Поиск в глубину (DFS — Depth-First Search)
 
 Идея: идти «вглубь» по одному пути до тупика, затем возвращаться (backtracking). Использует стек (явно или рекурсию).
@@ -1418,6 +1446,39 @@ Skip List — вероятностная структура данных, аль
         color[u]=серый, time++, d[u]=time (время открытия)
         Для каждого v ∈ Adj[u]: если color[v]==белый → pred[v]=u, DFS_Visit(v)
         color[u]=черный, time++, f[u]=time (время завершения)
+
+```
+
+int visit(Graph *graph, Vertex* u, int* time){
+    u->color=BLUE;
+    *time= *time+1;
+    u->open=*time;
+    for (int i=0; i<u->edge_count; i++){
+        int ind=u->edges[i].to;
+        Vertex *v=graph->vertexes[ind];
+        if (v->color==WHITE){
+            v->pred=u;
+            visit(graph,v,time);
+        }
+    }
+    u->color=RED;
+    *time=*time+1;
+    u->close=*time;
+    return 0;
+}
+
+
+int Depth_First_Search(Graph *graph){
+    reset(graph);
+    int time=0;
+    for (int i=0; i<graph->vertex_count; i++){
+        if (graph->vertexes[i]->color==WHITE){
+            visit(graph, graph->vertexes[i], &time);
+        }
+    }
+    return 0;
+}
+```
 
 Сложность: O(V + E)
 
